@@ -21,7 +21,6 @@ import {
   TableRow
 } from '@mui/material';
 import { useToast } from '../context/ToastContext';
-import { dashboardAPI } from '../services/apiService';
 
 interface DashboardMetrics {
   totalCustomers: number;
@@ -36,21 +35,7 @@ const Dashboard: React.FC = () => {
   const { showError } = useToast();
   const theme = useTheme();
 
-  useEffect(() => {
-    fetchDashboardMetrics();
-  }, []);
 
-  const fetchDashboardMetrics = async () => {
-    try {
-      const data = await dashboardAPI.getMetrics();
-      setMetrics(data);
-    } catch (error) {
-      console.error('Error fetching dashboard metrics:', error);
-      showError('Failed to load dashboard metrics');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Mock data for initial implementation
   const mockMetrics: DashboardMetrics = {

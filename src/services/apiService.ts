@@ -1,285 +1,219 @@
-import apiClient from "./api";
-import {
-  mockLogin,
-  mockForgotPassword,
-  mockResetPassword,
-  mockRegister,
-  mockGetCustomers,
-  mockGetCustomerById,
-  mockCreateCustomer,
-  mockUpdateCustomer,
-  mockDeleteCustomer,
-  mockChangeCustomerStatus,
-} from "./mockApi";
-import {
-  getCustomers as getCustomersFromStorage,
-  getCustomerById as getCustomerByIdFromStorage,
-  addCustomer,
-  updateCustomer,
-  deleteCustomer,
-  changeCustomerStatus as changeCustomerStatusInStorage,
-} from "./localStorageService";
-import type { Customer } from "./localStorageService";
+// apiService.ts - API service for backend integration
+import axios from 'axios';
 
-// Add a mock register function to the mock API imports list
+// Define enums
+export enum Roles {
+  SUPER_ADMIN = 1,
+  TRADER = 2,
+}
+
+export enum Status {
+  INACTIVE = 0,
+  ACTIVE = 1,
+}
+
+export enum TradingTier {
+  BASIC = 1,
+  SILVER = 2,
+  GOLD = 3,
+  PLATINUM = 4,
+}
+
+export enum ProductCategory {
+  ELECTRONICS = "electronics",
+  FASHION = "fashion",
+  FOOD = "food",
+  BEAUTY = "beauty",
+  HOME = "home",
+}
+
+export enum RiskCategory {
+  LOW = 1,
+  MEDIUM = 2,
+  HIGH = 3,
+}
+
+export interface User {
+  email: string;
+  name: string;
+  role: Roles;
+  password: string;
+  resetPasswordToken: string | null;
+  resetPasswordExpires: Date | null;
+}
+
+export interface Trader {
+  traderName: string;
+  status: Status;
+  phoneNo: string;
+  tradingTier: TradingTier;
+  city: string;
+  accountBalance: number;
+  address: string;
+  riskCategory: RiskCategory;
+  creditLimit: number;
+  isDeleted: boolean;
+}
+
+// Get the base API URL from environment variables
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
+// Create axios instance with default configuration
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add request interceptor to include JWT token in headers
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle common errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token might be expired, redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Authentication APIs
 export const authAPI = {
-  login: async (email: string, password: string) => {
-    try {
-      const response = await apiClient.post("/auth/login", { email, password });
-      return response.data;
-    } catch (error) {
-      console.log("Using mock login API");
-      return await mockLogin(email, password);
-    }
-  },
+  login: (email: string, password: string) => 
+    apiClient.post('/auth/login', { email, password }),
+    
+  register: (userData: any) => 
+    apiClient.post('/auth/register', userData),
+    
+  forgotPassword: (email: string) => 
+    apiClient.post('/auth/forgot-password', { email }),
+    
+  resetPassword: (token: string, newPassword: string) => 
+    apiClient.post(`/auth/reset-password/${token}`, { newPassword }),
+    
+  getProfile: () => 
+    apiClient.get('/auth/me'),
+};
 
-  register: async (email: string, password: string, name: string) => {
-    try {
-      const response = await apiClient.post("/auth/register", {
-        email,
-        password,
-        name,
-      });
-      return response.data;
-    } catch (error) {
-      console.log("Using mock register API");
-      return await mockRegister(email, password, name);
-    }
-  },
-
-  forgotPassword: async (email: string) => {
-    try {
-      const response = await apiClient.post("/auth/forgot-password", {
-        email,
-        path: `${window.location.origin}/reset-password`,
-      });
-      return response.data;
-    } catch (error) {
-      console.log("Using mock forgot password API");
-      return await mockForgotPassword(email);
-    }
-  },
-
-  resetPassword: async (token: string, newPassword: string) => {
-    try {
-      const response = await apiClient.post(`/auth/reset-password/${token}`, {
-        newPassword,
-      });
-      return response.data;
-    } catch (error) {
-      console.log("Using mock reset password API");
-      return await mockResetPassword(token, newPassword);
-    }
-  },
+// Trader APIs
+export const traderAPI = {
+  getAll: (params?: any) => 
+    apiClient.get('/traders', { params }),
+    
+  getById: (id: string) => 
+    apiClient.get(`/traders/${id}`),
+    
+  create: (traderData: any) => 
+    apiClient.post('/traders', traderData),
+    
+  update: (id: string, traderData: any) => 
+    apiClient.patch(`/traders/${id}`, traderData),
+    
+  updateStatus: (id: string, status: string) => 
+    apiClient.patch(`/traders/${id}/status`, { status }),
+    
+  delete: (id: string) => 
+    apiClient.delete(`/traders/${id}`),
 };
 
 // Customer APIs
 export const customerAPI = {
-  getCustomers: async () => {
-    try {
-      const response = await apiClient.get("/customers/list");
-      return response.data;
-    } catch (error) {
-      console.log("API failed, trying mock data");
-      try {
-        return await mockGetCustomers();
-      } catch (mockError) {
-        console.log("Mock also failed, using localStorage data");
-        return getCustomersFromStorage();
-      }
-    }
-  },
+  getCustomers: (params?: any) =>
+    apiClient.get('/customers', { params }),
 
-  getCustomerById: async (id: number) => {
-    try {
-      const response = await apiClient.get(`/customers/${id}`);
-      return response.data;
-    } catch (error) {
-      console.log("API failed, trying mock data");
-      try {
-        return await mockGetCustomerById(id);
-      } catch (mockError) {
-        console.log("Mock also failed, using localStorage data");
-        const customer = getCustomerByIdFromStorage(id);
-        if (!customer) {
-          throw new Error("Customer not found");
-        }
-        return customer;
-      }
-    }
-  },
+  getCustomerById: (id: string | number) =>
+    apiClient.get(`/customers/${id}`),
 
-  createCustomer: async (customerData: any) => {
-    try {
-      const response = await apiClient.post("/customers/add", customerData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      return response.data;
-    } catch (error) {
-      console.log("API failed, trying mock");
-      try {
-        return await mockCreateCustomer(customerData);
-      } catch (mockError) {
-        console.log("Mock also failed, using localStorage fallback");
-        // Convert form data to customer object
-        const customerObj: Omit<Customer, "_id" | "createdAt"> = {
-          name: customerData.get("name") || "",
-          email: customerData.get("email") || "",
-          companyName: customerData.get("companyName") || "",
-          phoneNo: customerData.get("phoneNo") || "",
-          gender: customerData.get("gender") || "male",
-          country: customerData.get("country") || "IN",
-          state: customerData.get("state") || "",
-          isSubscribed: customerData.get("isSubscribed") === "true",
-          address: customerData.get("address") || "",
-          notes: customerData.get("notes") || "",
-          documents: [],
-          status: "active",
-          profileImage: undefined, // Profile image handling would be more complex
-        };
+  createCustomer: (customerData: any) =>
+    apiClient.post('/customers', customerData),
 
-        return addCustomer(customerObj);
-      }
-    }
-  },
+  updateCustomer: (id: string | number, customerData: any) =>
+    apiClient.patch(`/customers/${id}`, customerData),
 
-  updateCustomer: async (id: number, customerData: any) => {
-    try {
-      const response = await apiClient.put(
-        `/customers/update/${id}`,
-        customerData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-      return response.data;
-    } catch (error) {
-      console.log("API failed, trying mock");
-      try {
-        return await mockUpdateCustomer(id, customerData);
-      } catch (mockError) {
-        console.log("Mock also failed, using localStorage fallback");
-        // Convert form data to customer object
-        const customerObj: Partial<Customer> = {
-          name: customerData.get("name") || undefined,
-          email: customerData.get("email") || undefined,
-          companyName: customerData.get("companyName") || undefined,
-          phoneNo: customerData.get("phoneNo") || undefined,
-          gender: customerData.get("gender") || undefined,
-          country: customerData.get("country") || undefined,
-          state: customerData.get("state") || undefined,
-          isSubscribed: customerData.get("isSubscribed") === "true",
-          address: customerData.get("address") || undefined,
-          notes: customerData.get("notes") || undefined,
-        };
+  changeCustomerStatus: (id: string | number, status: string) =>
+    apiClient.patch(`/customers/${id}/status`, { status }),
 
-        const result = updateCustomer(id, customerObj);
-        if (!result) {
-          throw new Error("Customer not found");
-        }
-        return result;
-      }
-    }
-  },
-
-  deleteCustomer: async (id: number) => {
-    try {
-      const response = await apiClient.delete(`/customers/delete/${id}`);
-      return response.data;
-    } catch (error) {
-      console.log("API failed, trying mock");
-      try {
-        return await mockDeleteCustomer(id);
-      } catch (mockError) {
-        console.log("Mock also failed, using localStorage fallback");
-        const success = deleteCustomer(id);
-        if (!success) {
-          throw new Error("Customer not found");
-        }
-        return { success: true, message: "Customer deleted successfully" };
-      }
-    }
-  },
-
-  changeCustomerStatus: async (id: number, status: "active" | "inactive") => {
-    try {
-      const response = await apiClient.patch(`/customers/change-status/${id}`, {
-        status,
-      });
-      return response.data;
-    } catch (error) {
-      console.log("API failed, trying mock");
-      try {
-        return await mockChangeCustomerStatus(id, status);
-      } catch (mockError) {
-        console.log("Mock also failed, using localStorage fallback");
-        const success = changeCustomerStatusInStorage(id, status);
-        if (!success) {
-          throw new Error("Customer not found");
-        }
-        return {
-          success: true,
-          message: "Customer status updated successfully",
-          data: { id, status },
-        };
-      }
-    }
-  },
+  deleteCustomer: (id: string | number) =>
+    apiClient.delete(`/customers/${id}`),
 };
 
-// Dashboard APIs
-export const dashboardAPI = {
-  getMetrics: async () => {
-    try {
-      const response = await apiClient.get("/dashboard/metrics");
-      return response.data;
-    } catch (error) {
-      console.log("Using mock dashboard metrics API");
-      // Mock data for implementation
-      const mockMetrics = {
-        totalCustomers: 1201,
-        activeCustomers: 1100,
-        inactiveCustomers: 122,
-        recentCustomers: [
-          {
-            id: 1,
-            name: "Joh Doe",
-            email: "john@example.com",
-            date: "2025-11-01",
-          },
-          {
-            id: 2,
-            name: "Jane Smith",
-            email: "jane@example.com",
-            date: "2025-10-28",
-          },
-          {
-            id: 3,
-            name: "Robert Johnson",
-            email: "robert@example.com",
-            date: "2025-10-25",
-          },
-          {
-            id: 4,
-            name: "Emily Davis",
-            email: "emily@example.com",
-            date: "2025-10-20",
-          },
-          {
-            id: 5,
-            name: "Michael Brown",
-            email: "michael@example.com",
-            date: "2025-10-15",
-          },
-        ],
-      };
-      return mockMetrics;
+// File APIs
+export const fileAPI = {
+  getAll: (params?: any) => 
+    apiClient.get('/files', { params }),
+    
+  getById: (id: string) => 
+    apiClient.get(`/files/${id}`),
+    
+  upload: (file: File, traderId?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (traderId) {
+      formData.append('traderId', traderId);
     }
+    return apiClient.post('/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
   },
+  
+  extractProducts: (id: string) => 
+    apiClient.post(`/files/extract/${id}`),
+    
+  updateStatus: (id: string, status: string) => 
+    apiClient.patch(`/files/${id}/status`, { status }),
+    
+  incrementViews: (id: string) => 
+    apiClient.patch(`/files/${id}/views`),
+    
+  delete: (id: string) => 
+    apiClient.delete(`/files/${id}`),
 };
+
+// Product APIs
+export const productAPI = {
+  getAll: (params?: any) => 
+    apiClient.get('/products', { params }),
+    
+  getById: (id: string) => 
+    apiClient.get(`/products/${id}`),
+    
+  create: (productData: any) => 
+    apiClient.post('/products', productData),
+    
+  update: (id: string, productData: any) => 
+    apiClient.patch(`/products/${id}`, productData),
+    
+  delete: (id: string) => 
+    apiClient.delete(`/products/${id}`),
+};
+
+// Aggregate named export for compatibility with existing imports that expect `apiService`
+export const apiService = {
+  auth: authAPI,
+  traders: traderAPI,
+  customers: customerAPI,
+  files: fileAPI,
+  products: productAPI,
+};
+
+export default apiClient;

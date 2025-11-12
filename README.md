@@ -1,107 +1,93 @@
-# Super Admin Dashboard
+# Trading Platform Admin Panel
 
-A complete React + TypeScript frontend application with Material UI, Tailwind CSS, Formik, Yup, and Axios integration for a customer management system.
+This is a comprehensive admin panel for managing traders, files, and products in a trading platform. The application includes role-based access control with different permissions for Super Admins and Traders.
 
 ## Features
 
-- **Authentication**: Login, Forgot Password, Reset Password
-- **Dashboard**: Key metrics and customer overview
-- **Customer Management**: List, Add, Edit, and View customers
-- **File Uploads**: With previews and management
-- **Responsive Design**: Works on desktop and mobile
-- **Form Validation**: Using Formik and Yup
-- **API Integration**: With JWT token handling
-- **Notifications**: Toast notifications for user feedback
+### Traders Module
+- **Super Admin**: Create, edit, view, and manage all traders
+- **Trader**: Can log in but has restricted permissions
+- Trader profiles include contact details, trading tier, risk category, and account information
+- Search and filter traders by name, tier, or region
 
-## Tech Stack
+### Files Management Module
+- **Super Admin**: View and manage all files uploaded by all traders
+- **Trader**: View and manage only their own uploaded files
+- Support for CSV and XLSX file uploads
+- Real-time view count tracking
+- File security settings (Public/Protected)
 
-- React + TypeScript
-- Material UI
-- Tailwind CSS
-- Formik + Yup
-- Axios
-- React Router v6
-- React Context API
-- React Toastify
+### Product Management Module
+- **Super Admin**: View, edit, delete, or add any product
+- **Trader**: View and manage only their own product data
+- Automatic product extraction from uploaded files
+- Product details include category, pricing, and inventory
 
-## Installation
+## User Roles
 
-1. Clone the repository
-2. Install dependencies:
+| Role | Permissions |
+|------|-------------|
+| Super Admin | Full access to manage traders, all files, all products, and system settings |
+| Trader | Manage only their own files and products; cannot view others' data |
+
+## UI Components
+
+The application includes several reusable components:
+- DataTable: For displaying tabular data with filtering and sorting
+- SearchFilters: For search and filter functionality
+- TraderForm: For creating and editing trader profiles
+
+## API Integration
+
+The application includes a flexible API service layer that can work with either a real backend or mock data for development:
+
+- Set `VITE_USE_MOCK_API=true` in your `.env` file to use mock data
+- Set `VITE_API_URL` to point to your backend API
+- The API service automatically includes JWT tokens in requests
+
+## Setup Instructions
+
+1. Install dependencies:
    ```bash
    npm install
    ```
+
+2. Create a `.env` file in the root directory:
+   ```env
+   VITE_API_URL=http://localhost:5000/api
+   VITE_USE_MOCK_API=true  # Set to 'false' when using real backend
+   ```
+
 3. Start the development server:
    ```bash
    npm run dev
    ```
 
-## API Configuration
+## Testing Credentials
 
-The application is configured to connect to a backend API at `http://10.0.4.233:3001/api/`. The application includes mock API implementations that will be used if the real API is not available.
+For testing purposes, you can use these mock credentials:
+- Admin: `admin@example.com` / `password`
+- Trader: `trader@example.com` / `password`
 
-## Authentication
-
-To log in during development, use:
-- Email: `admin@example.com`
-- Password: `Password123!`
-
-## Project Structure
+## File Structure
 
 ```
 src/
-├── components/          # Reusable UI components
-├── context/             # React context providers
-├── hooks/               # Custom React hooks
-├── pages/               # Page components
-├── services/            # API services
-├── utils/               # Utility functions
-└── App.tsx              # Main application component
+├── components/           # Reusable UI components
+│   ├── DataTable.tsx
+│   ├── SearchFilters.tsx
+│   ├── TraderForm.tsx
+│   └── DashboardLayout.tsx
+├── pages/                # Page components
+│   ├── auth/             # Authentication pages
+│   ├── traders/          # Trader management pages
+│   ├── files/            # File management pages
+│   └── products/         # Product management pages
+├── context/              # React context providers
+│   ├── AuthContext.tsx
+│   └── ToastContext.tsx
+├── services/             # API services
+│   ├── apiClient.ts
+│   └── mockAPIService.ts
+└── AppRoutes.tsx         # Application routing
 ```
-
-## Environment Configuration
-
-The application uses a `.env` file for environment variables. Create a `.env` file in the root directory with the following:
-
-```
-VITE_API_BASE_URL=http://10.0.4.233:3001/api
-```
-
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run lint` - Run ESLint
-- `npm run preview` - Preview production build
-
-## Key Functionality
-
-1. **Authentication Flow**:
-   - Login with email/password
-   - Forgot password functionality
-   - Password reset via token
-   - JWT token management in localStorage
-
-2. **Dashboard**:
-   - Key metrics display
-   - Recent customers table
-   - Responsive layout
-
-3. **Customer Management**:
-   - Create, read, update, delete (CRUD) operations
-   - Search and filter functionality
-   - File uploads with previews
-   - Status management
-
-4. **Security**:
-   - Protected routes
-   - JWT token auto-attach to requests
-   - Token expiration handling
-
-## Mock API Implementation
-
-This application includes mock API implementations that will be used when the real backend is not available. This allows for full frontend development and testing without a backend server.
-
-## File Upload
-
-The application supports file uploads with previews. Supported formats include images, PDFs, and document files. Files are managed with preview and removal capabilities during the editing process.

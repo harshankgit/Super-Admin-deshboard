@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  AppBar, 
-  Toolbar, 
-  IconButton, 
-  Typography, 
-  Menu, 
-  Container, 
-  Avatar, 
-  Button, 
-  Tooltip, 
+import {
+  Box,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Typography,
+  Menu,
+  Container,
+  Avatar,
+  Button,
+  Tooltip,
   MenuItem,
   Drawer,
   List,
@@ -21,10 +21,14 @@ import {
   Switch,
   FormControlLabel
 } from '@mui/material';
-import { 
-  Menu as MenuIcon, 
-  Dashboard as DashboardIcon, 
-  People as PeopleIcon, 
+import {
+  Menu as MenuIcon,
+  Dashboard as DashboardIcon,
+  People as PeopleIcon,
+  Inventory as InventoryIcon,
+  Description as DescriptionIcon,
+  Store as StoreIcon,
+  Person as PersonIcon,
   Logout as LogoutIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon
@@ -32,6 +36,7 @@ import {
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { Roles } from '../services/apiService';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -40,7 +45,7 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, darkMode, setDarkMode }) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { showSuccess } = useToast();
   const location = useLocation();
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
@@ -66,17 +71,23 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, darkMode, s
 
   const drawerWidth = 280;
 
+  // Role-based navigation items
   const navItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Customers', icon: <PeopleIcon />, path: '/customers' },
+    // ...(user?.role === Roles.SUPER_ADMIN ? [
+      { text: 'Traders', icon: <PeopleIcon />, path: '/traders' },
+    // ] : []),
+    { text: 'Files Management', icon: <DescriptionIcon />, path: '/files' },
+    { text: 'Products', icon: <InventoryIcon />, path: '/products' },
   ];
 
   const renderNavItems = () => {
     return navItems.map((item) => (
-      <ListItem 
-        button 
-        key={item.text} 
-        component={Link} 
+      <ListItem
+        button
+        key={item.text}
+        component={Link}
         to={item.path}
         selected={location.pathname === item.path}
         sx={{
@@ -105,7 +116,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, darkMode, s
     <div>
       <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-          Super Admin
+          {user?.role === Roles.SUPER_ADMIN ? 'Super Admin' : 'Trader'}
         </Typography>
       </Toolbar>
       <Divider />
@@ -158,7 +169,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, darkMode, s
             component="div"
             sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }}
           >
-            Super Admin Dashboard
+            {user?.role === Roles.SUPER_ADMIN ? 'Super Admin Dashboard' : 'Trader Dashboard'}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Tooltip title="Toggle theme">
@@ -168,7 +179,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, darkMode, s
             </Tooltip>
             <Tooltip title="Open settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="Super Admin" src="/static/images/avatar/2.jpg" />
+                <Avatar alt={user?.name || "User"} src="/static/images/avatar/2.jpg" />
               </IconButton>
             </Tooltip>
             <Menu

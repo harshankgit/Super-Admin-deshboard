@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authAPI } from '../services/apiService';
+import { apiService } from '../services/apiClient';
+import { Roles } from '../services/apiService';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -37,14 +38,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await authAPI.login(email, password);
-      console.log(response);
-      if (response) {
-        localStorage.setItem('token', response?.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
+      const response = await apiService.auth.login(email, password);
+      
+      if (response?.data) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
         setIsAuthenticated(true);
-        setUser(response.user);
-        navigate('/dashboard');
+        setUser(response.data.user);
         return true;
       } else {
         return false;
@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const forgotPassword = async (email: string): Promise<boolean> => {
     try {
-      await authAPI.forgotPassword(email);
+      await apiService.auth.forgotPassword(email);
       return true;
     } catch (error) {
       console.error('Forgot password error:', error);
@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const resetPassword = async (token: string, newPassword: string): Promise<boolean> => {
     try {
-      await authAPI.resetPassword(token, newPassword);
+      await apiService.auth.resetPassword(token, newPassword);
       return true;
     } catch (error) {
       console.error('Reset password error:', error);

@@ -8,6 +8,7 @@ import { AccountCircle, Visibility, VisibilityOff } from '@mui/icons-material';
 import { InputAdornment, IconButton } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { Roles } from '../../services/apiService';
 import { loginSchema } from '../../utils/validators';
 
 interface LoginFormValues {
@@ -35,7 +36,18 @@ const LoginForm: React.FC<LoginFormProps> = ({ darkMode }) => {
   const handleSubmit = async (values: LoginFormValues) => {
     const success = await login(values.email, values.password);
 
-    if (!success) {
+    if (success) {
+      // Redirect based on user role after successful login
+      const token = localStorage.getItem('token');
+      if (token) {
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        if (userData.role === Roles.SUPER_ADMIN) {
+          navigate('/traders'); // Super Admin goes to traders list
+        } else {
+          navigate('/files'); // Trader goes to files management
+        }
+      }
+    } else {
       showError('Invalid credentials. Please try again.');
     }
   };
